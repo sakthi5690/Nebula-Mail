@@ -1,0 +1,43 @@
+{
+  "name": "stitch_ai_driven_email_client",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "tsx server/src/index.ts",
+    "server:dev": "tsx watch server/src/index.ts",
+    "start": "tsx server/src/index.ts",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:all": "npm run test && npx tsx src/lib/ai/__tests__/ai-actions.test.ts && npx tsx src/lib/ai/__tests__/ai-compose.test.ts && npx tsx src/lib/ai/__tests__/ai-open-email.test.ts && npx tsx src/lib/ai/__tests__/ai-reply-forward.test.ts && npx tsx src/lib/ai/__tests__/ai-search.test.ts"
+  },
+  "keywords": [
+    "ai-email",
+    "stitch",
+    "supabase",
+    "gmail-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "description": "Stitch AI-driven email client with Supabase application metadata & Gmail integration",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "googleapis": "^178.0.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "vitest": "^4.1.11"
+  }
+}

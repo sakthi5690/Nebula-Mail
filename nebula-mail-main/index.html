@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AetherMail — AI Driven Workspace Email Client</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=inter:wght@100..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#f8f9ff",
+              "surface-dim": "#cbdbf5",
+              "surface-bright": "#f8f9ff",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#eff4ff",
+              "surface-container": "#e5eeff",
+              "surface-container-high": "#dce9ff",
+              "surface-container-highest": "#d3e4fe",
+              "on-surface": "#0b1c30",
+              "on-surface-variant": "#464555",
+              "primary": "#3525cd",
+              "on-primary": "#ffffff",
+              "primary-container": "#4f46e5",
+              "on-primary-container": "#dad7ff",
+              "secondary": "#6b38d4",
+              "on-secondary": "#ffffff",
+              "secondary-container": "#8455ef",
+              "tertiary": "#00505f",
+              "tertiary-container": "#006a7c",
+              "outline": "#777587",
+              "outline-variant": "#c7c4d8",
+              "error": "#ba1a1a",
+              "error-container": "#ffdad6",
+              "on-error-container": "#93000a"
+            },
+            fontFamily: {
+              "headline-md": ["inter"],
+              "headline-sm": ["inter"],
+              "body-lg": ["inter"],
+              "body-md": ["inter"],
+              "body-sm": ["inter"],
+              "label-md": ["inter"],
+              "code-badge": ["JetBrains Mono", "monospace"],
+              "shortcut-key": ["JetBrains Mono", "monospace"]
+            },
+            spacing: {
+              "nav-width": "15rem",
+              "space-xs": "0.25rem",
+              "space-sm": "0.5rem",
+              "space-md": "0.75rem",
+              "space-base": "1rem",
+              "space-lg": "1.5rem"
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      @layer base {
+        html, body { margin: 0; padding: 0; }
+        body { overscroll-behavior: none; }
+      }
+      ::-webkit-scrollbar { display: none; }
+    </style>
+  </head>
+  <body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
+    <!-- Left Sidebar Nav -->
+    <aside class="fixed left-0 top-0 h-full w-nav-width bg-surface-container-low flex flex-col z-40 select-none shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      <div class="p-space-base pb-space-sm flex flex-col gap-space-xs">
+        <div class="flex items-center gap-space-sm">
+          <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">AetherMail</span>
+            <span class="font-shortcut-key text-[10px] text-secondary uppercase font-semibold tracking-wider">Workspace AI</span>
+          </div>
+        </div>
+        <!-- Pub/Sub telemetry node connected to Supabase metadata -->
+        <div id="pubsubStatusNode" class="mt-space-xs inline-flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container-high text-tertiary font-code-badge text-[11px]">
+          <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+          <span class="truncate">Gmail API (Pub/Sub Sync)</span>
+        </div>
+        <!-- Gmail Connect Button (shown when not connected) -->
+        <button id="connectGmailBtn" class="mt-space-xs w-full flex items-center justify-center gap-space-xs py-1.5 px-space-sm rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-xs transition-all border border-outline-variant/40" type="button">
+          <span class="material-symbols-outlined text-[16px]">link</span>
+          <span>Connect Gmail</span>
+        </button>
+        <!-- Gmail Connected Status (shown after successful OAuth) -->
+        <div id="gmailConnectedStatus" class="mt-space-xs w-full flex items-center gap-space-xs py-1.5 px-space-sm rounded-lg bg-primary/10 text-primary font-label-md text-xs" style="display: none;">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span id="gmailConnectedEmail" class="truncate">Gmail Connected</span>
+        </div>
+      </div>
+
+      <div class="px-space-base py-space-xs flex flex-col gap-2">
+        <button id="composeBtn" class="w-full flex items-center justify-center gap-space-sm py-space-sm px-space-md rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-sm transition-colors shadow-[0_1px_4px_rgba(0,0,0,0.08)]" type="button">
+          <span class="material-symbols-outlined text-[16px]">edit_square</span>
+          <span>Compose Mail</span>
+          <kbd class="ml-auto font-shortcut-key text-[10px] bg-on-primary/20 px-1 py-0.5 rounded text-on-primary">C</kbd>
+        </button>
+
+        <button id="aiComposeTriggerBtn" class="w-full flex items-center justify-center gap-space-sm py-2 px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-xs font-semibold transition-all border border-primary/20 shadow-sm" type="button">
+          <span class="material-symbols-outlined text-[16px] text-primary">auto_awesome</span>
+          <span>Ask AI to Compose</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-space-sm py-space-xs space-y-4">
+        <nav class="space-y-1">
+          <div class="px-space-sm pb-1 text-xs text-outline font-medium tracking-wide uppercase">Mailboxes</div>
+          <a id="inboxNavBtn" aria-current="page" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg bg-primary-container text-on-primary font-semibold text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm">
+              <span class="material-symbols-outlined text-[18px]">inbox</span>
+              <span>Inbox</span>
+            </span>
+            <span id="inboxCountBadge" class="px-1.5 py-0.5 rounded-full bg-primary text-on-primary text-[11px] font-code-badge">0</span>
+          </a>
+          <a id="starredNavBtn" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">star</span><span>Starred</span></span>
+          </a>
+          <a id="sentNavBtn" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">send</span><span>Sent</span></span>
+          </a>
+          <a id="draftsNavBtn" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">draft</span><span>Drafts</span></span>
+          </a>
+          <a id="archiveNavBtn" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">archive</span><span>Archive</span></span>
+          </a>
+          <a id="trashNavBtn" class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm cursor-pointer" href="#">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">delete</span><span>Trash</span></span>
+          </a>
+        </nav>
+
+        <div class="space-y-1">
+          <div class="px-space-sm pb-1 text-xs text-outline font-medium tracking-wide uppercase">Views & Stitch Labs</div>
+          <a class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm" href="/ai_search_filter_real_time_sync/code.html">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">filter_alt</span><span>Real-Time Sync Feed</span></span>
+          </a>
+          <a class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm" href="/context_aware_email_detail_ai_reply/code.html">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">mark_chat_read</span><span>Contextual Detail & Reply</span></span>
+          </a>
+          <a class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all text-sm" href="/ai_ui_control_compose_populate/code.html">
+            <span class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">draw</span><span>AI Compose & Populate</span></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Account Info footer -->
+      <div class="p-space-sm bg-surface-container flex flex-col gap-space-sm">
+        <div class="pt-space-xs flex items-center gap-space-sm px-space-xs">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-xs font-semibold text-on-surface truncate leading-tight">David Vance</span>
+            <span class="text-[10px] text-on-surface-variant truncate leading-tight">david.vance@company.com</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Workspace -->
+    <div class="pl-nav-width">
+      <header class="fixed top-0 left-nav-width right-0 h-16 bg-surface/80 backdrop-blur-xl z-30 flex items-center justify-between px-space-base gap-space-base shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <div class="flex-1 max-w-2xl flex items-center gap-space-sm">
+          <div class="relative flex-1 flex items-center">
+            <span id="mailSearchBtn" class="material-symbols-outlined absolute left-space-sm text-outline text-[18px] cursor-pointer hover:text-primary transition-colors">manage_search</span>
+            <input id="mailSearchInput" class="w-full pl-9 pr-14 py-space-xs bg-surface-container-low hover:bg-surface-container focus:bg-surface-container-lowest text-on-surface placeholder:text-outline text-sm rounded-lg outline-none transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]" placeholder="Search mail (press Enter) or ⌘K for Copilot..." type="text" />
+            <kbd class="absolute right-space-sm text-[10px] font-shortcut-key text-outline bg-surface-container-high px-1.5 py-0.5 rounded">⌘K</kbd>
+          </div>
+        </div>
+        <div class="flex items-center gap-space-sm">
+          <div class="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-container/10 text-tertiary text-xs font-code-badge">
+            <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+            <span>⚡ Supabase Real-Time Sync Ready</span>
+          </div>
+          <button id="copilotHeaderBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-on-secondary hover:bg-secondary-container text-sm transition-all shadow-[0_2px_8px_rgba(107,56,212,0.25)]" type="button">
+            <span class="material-symbols-outlined text-[16px]">smart_toy</span>
+            <span>Copilot</span>
+            <span class="text-[10px] font-shortcut-key bg-on-secondary/20 px-1 rounded">⌥C</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="w-full pt-16 bg-surface min-h-screen">
+        <!-- Live Toast Notification Element -->
+        <div class="w-full bg-surface-container-low px-space-base py-2 flex items-center justify-between border-b border-surface-container-high">
+          <div class="flex items-center gap-2">
+            <div class="relative flex items-center justify-center w-2.5 h-2.5">
+              <span id="realtimeSyncIndicator" class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+            </div>
+            <span class="text-xs font-code-badge text-on-surface flex items-center gap-1">
+              <span class="font-semibold text-primary">Real-time Pub/Sub: Active</span>
+              <span class="text-on-surface-variant">· Gmail & Supabase Metadata Sync</span>
+              <span class="px-1.5 py-0.5 rounded bg-surface-container text-tertiary text-[10px] font-shortcut-key">11ms roundtrip</span>
+            </span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-1 rounded-lg shadow-sm" id="toastNotification">
+            <span class="material-symbols-outlined text-secondary text-[16px] animate-bounce">bolt</span>
+            <span class="text-xs font-medium text-on-surface truncate max-w-md">
+              Incoming Email synced: <span class="text-primary font-semibold">"Urgent: Q3 Budget Review from David Miller"</span>
+            </span>
+            <span class="text-[10px] font-shortcut-key text-on-surface-variant bg-surface-container px-1 py-0.5 rounded">Push Sync</span>
+          </div>
+        </div>
+
+        <!-- Live Gmail Mailbox Feed / Detail View Container -->
+        <section id="gmailLiveSection" class="p-6 max-w-7xl mx-auto space-y-4">
+          <!-- Active Mailbox Header & Controls Bar -->
+          <div class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm border border-surface-container-high flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <span id="mailboxIcon" class="material-symbols-outlined text-[24px]">inbox</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 id="mailboxTitle" class="text-xl font-bold text-on-surface">Gmail Inbox</h2>
+                  <span id="mailboxBadge" class="text-xs font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full">Connecting...</span>
+                </div>
+                <p id="mailboxSubtitle" class="text-xs text-on-surface-variant mt-0.5">Fetching messages live from Gmail API</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="refreshMailboxBtn" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-medium transition-colors border border-surface-container-high" type="button">
+                <span class="material-symbols-outlined text-[16px]">sync</span>
+                <span>Refresh</span>
+              </button>
+              <button id="openComposeFloatingBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-xs font-medium transition-colors shadow-sm" type="button">
+                <span class="material-symbols-outlined text-[16px]">edit_square</span>
+                <span>Compose</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Thread Items List Container -->
+          <div id="threadListContainer" class="bg-surface-container-lowest rounded-2xl border border-surface-container-high overflow-hidden shadow-sm divide-y divide-surface-container-high min-h-[300px]">
+            <!-- Placeholder / Initial state -->
+            <div id="threadListLoading" class="p-12 flex flex-col items-center justify-center gap-3 text-center">
+              <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+              <p class="text-sm font-medium text-on-surface">Connecting to Gmail API...</p>
+              <p class="text-xs text-on-surface-variant max-w-sm">If not yet authenticated, click "Connect Gmail" in the sidebar to authorize via Google OAuth.</p>
+            </div>
+            <div id="threadListItems" class="divide-y divide-surface-container-high"></div>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div id="paginationBar" class="flex items-center justify-between px-2 pt-1 text-xs text-on-surface-variant" style="display: none;">
+            <span id="resultCountLabel">Showing live Gmail conversations</span>
+            <button id="loadMoreBtn" class="px-3 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-medium transition-colors" type="button">
+              Load More
+            </button>
+          </div>
+        </section>
+
+        <!-- Stitch Showcase Grid -->
+        <div class="p-6 max-w-7xl mx-auto space-y-6">
+          <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-surface-container-high">
+            <div class="flex items-start justify-between">
+              <div>
+                <h1 class="text-2xl font-bold text-on-surface flex items-center gap-2">
+                  <span>AetherMail — Connected Architecture</span>
+                  <span class="text-xs font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full">Part 4 Complete</span>
+                </h1>
+                <p class="text-sm text-on-surface-variant mt-1">
+                  Supabase metadata integration layer connected to the Stitch AI-Driven Email Client frontend with zero redesign or token leakage.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono px-3 py-1 rounded bg-surface-container text-primary font-semibold">Vite + TypeScript</span>
+              </div>
+            </div>
+
+            <!-- Architecture Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              <div class="p-4 rounded-xl bg-surface-container-low border border-surface-container-high flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-primary font-semibold text-sm">
+                  <span class="material-symbols-outlined text-[18px]">shield</span>
+                  <span>Frontend Client</span>
+                </div>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Uses public anon key only. Connects to Supabase Realtime for instant synchronization indicators and UI state updates.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-surface-container-low border border-surface-container-high flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-primary font-semibold text-sm">
+                  <span class="material-symbols-outlined text-[18px]">dns</span>
+                  <span>Backend & Admin</span>
+                </div>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Strictly isolated server environment. Securely manages OAuth tokens, Pub/Sub webhook callbacks, and watch registrations.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-surface-container-low border border-surface-container-high flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-tertiary font-semibold text-sm">
+                  <span class="material-symbols-outlined text-[18px]">sync</span>
+                  <span>Gmail Source of Truth</span>
+                </div>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Email bodies and attachments remain in Gmail. Supabase only stores sync state, history IDs, and user settings.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-surface-container-low border border-surface-container-high flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-secondary font-semibold text-sm">
+                  <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+                  <span>AI Copilot Layer</span>
+                </div>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                  Dispatches contextual suggestions, compose population, and inbox filtering directly to the kinetic precision interface.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stitch UI Views Switcher -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="/ai_search_filter_real_time_sync/code.html" class="group block p-5 rounded-2xl bg-surface-container-lowest hover:bg-surface-container-low border border-surface-container-high transition-all shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase text-secondary font-code-badge">View 1</span>
+                <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-[20px]">arrow_forward</span>
+              </div>
+              <h3 class="text-base font-bold text-on-surface group-hover:text-primary transition-colors">Real-Time Sync & Search Feed</h3>
+              <p class="text-xs text-on-surface-variant mt-1">Live telemetry bar, AI filter chips, and Gmail push notification stream.</p>
+            </a>
+
+            <a href="/context_aware_email_detail_ai_reply/code.html" class="group block p-5 rounded-2xl bg-surface-container-lowest hover:bg-surface-container-low border border-surface-container-high transition-all shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase text-secondary font-code-badge">View 2</span>
+                <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-[20px]">arrow_forward</span>
+              </div>
+              <h3 class="text-base font-bold text-on-surface group-hover:text-primary transition-colors">Context-Aware Detail & Reply</h3>
+              <p class="text-xs text-on-surface-variant mt-1">Multi-pane thread view, Copilot executive summary card, and contextual reply generator.</p>
+            </a>
+
+            <a href="/ai_ui_control_compose_populate/code.html" class="group block p-5 rounded-2xl bg-surface-container-lowest hover:bg-surface-container-low border border-surface-container-high transition-all shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase text-secondary font-code-badge">View 3</span>
+                <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-[20px]">arrow_forward</span>
+              </div>
+              <h3 class="text-base font-bold text-on-surface group-hover:text-primary transition-colors">AI Compose & Auto-Populate</h3>
+              <p class="text-xs text-on-surface-variant mt-1">Floating compose modal with automated field completion and tone customization.</p>
+            </a>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- EMAIL DETAIL MODAL VIEW (Stitch Precision Layout) -->
+    <!-- ========================================================================= -->
+    <div id="emailDetailModal" class="fixed inset-0 bg-inverse-surface/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" style="display: none;">
+      <div class="w-full max-w-4xl max-h-[90vh] bg-surface rounded-2xl shadow-2xl border border-surface-container-high flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Detail Header Bar -->
+        <div class="p-space-base bg-surface-container-low border-b border-surface-container-high flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <button id="closeDetailBtn" class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+              <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </button>
+            <span class="font-headline-sm text-sm font-semibold text-on-surface">Email Details</span>
+            <span id="detailLabels" class="flex items-center gap-1 ml-2"></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="replyFromDetailBtn" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-xs font-medium transition-colors" type="button">
+              <span class="material-symbols-outlined text-[16px]">reply</span>
+              <span>Reply</span>
+            </button>
+            <button id="forwardFromDetailBtn" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-medium transition-colors border border-outline/20" type="button">
+              <span class="material-symbols-outlined text-[16px]">forward</span>
+              <span>Forward</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Detail Reading Canvas -->
+        <div class="p-6 overflow-y-auto space-y-4 flex-1">
+          <div>
+            <h1 id="detailSubject" class="text-xl font-bold text-on-surface tracking-tight leading-snug"></h1>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-surface-container-high text-xs text-on-surface-variant">
+              <div class="flex items-center gap-2">
+                <div id="detailSenderAvatar" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs">U</div>
+                <div class="flex flex-col">
+                  <span id="detailSenderName" class="font-semibold text-on-surface"></span>
+                  <span id="detailSenderEmail" class="text-outline"></span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span id="detailDate" class="font-mono text-outline"></span>
+              </div>
+            </div>
+            <div class="text-xs text-outline mt-2">
+              <span>To: </span><span id="detailRecipients" class="text-on-surface-variant"></span>
+            </div>
+          </div>
+
+          <!-- Email Body Canvas (Preserves Stitch aesthetic) -->
+          <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container-high shadow-sm text-on-surface text-sm leading-relaxed min-h-[160px]">
+            <div id="detailBodyContent" class="prose max-w-none"></div>
+          </div>
+
+          <!-- Attachments List (if any) -->
+          <div id="detailAttachmentsContainer" class="space-y-2" style="display: none;">
+            <span class="text-xs font-semibold text-outline uppercase tracking-wider">Attachments</span>
+            <div id="detailAttachmentsList" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- COMPOSE EMAIL MODAL (Stitch Floating Precision Compose Form) -->
+    <!-- ========================================================================= -->
+    <div id="composeModal" class="fixed bottom-4 right-4 sm:right-8 w-[95vw] sm:w-[540px] bg-surface-container-lowest rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden border border-surface-container-high" style="display: none;">
+      <!-- Glowing Header Pill Bar -->
+      <div class="bg-primary text-on-primary px-4 py-2.5 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">edit_square</span>
+          <span class="font-semibold text-xs tracking-wide">Compose New Email</span>
+        </div>
+        <button id="closeComposeBtn" class="p-1 hover:bg-on-primary/20 rounded text-on-primary transition-colors" type="button">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Compose Form -->
+      <form id="composeForm" class="p-4 flex flex-col gap-3 bg-surface-container-lowest text-sm">
+        <!-- Error or Success Alert inside Compose -->
+        <div id="composeAlert" class="px-3 py-2 rounded-lg text-xs font-medium" style="display: none;"></div>
+
+        <!-- AI Assistant Prompt Bar inside Modal -->
+        <div class="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/20">
+          <span class="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+          <input id="aiComposeModalPromptInput" type="text" placeholder="Instruct AI: 'Write a professional email asking for an extension'..." class="flex-1 bg-transparent text-xs text-on-surface placeholder:text-outline outline-none" />
+          <button id="aiComposeModalSubmitBtn" type="button" class="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] transition-colors flex items-center gap-1 shadow-sm">
+            <span>Generate</span>
+            <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+          </button>
+        </div>
+
+        <!-- To field with CC/BCC toggle buttons -->
+        <div class="flex items-center gap-2 border-b border-surface-container-high pb-2">
+          <label for="composeToInput" class="w-12 text-outline font-semibold text-xs">To:</label>
+          <input id="composeToInput" required type="text" placeholder="recipient@example.com" class="flex-1 bg-transparent text-on-surface placeholder:text-outline outline-none text-sm" />
+          <div class="flex items-center gap-1">
+            <button id="toggleCcBtn" type="button" class="text-[11px] font-semibold text-outline hover:text-on-surface px-1.5 py-0.5 rounded hover:bg-surface-container-high">Cc</button>
+            <button id="toggleBccBtn" type="button" class="text-[11px] font-semibold text-outline hover:text-on-surface px-1.5 py-0.5 rounded hover:bg-surface-container-high">Bcc</button>
+          </div>
+        </div>
+
+        <!-- CC field (collapsible) -->
+        <div id="composeCcRow" class="flex items-center gap-2 border-b border-surface-container-high pb-2" style="display: none;">
+          <label for="composeCcInput" class="w-12 text-outline font-semibold text-xs">Cc:</label>
+          <input id="composeCcInput" type="text" placeholder="cc@example.com" class="flex-1 bg-transparent text-on-surface placeholder:text-outline outline-none text-sm" />
+        </div>
+
+        <!-- BCC field (collapsible) -->
+        <div id="composeBccRow" class="flex items-center gap-2 border-b border-surface-container-high pb-2" style="display: none;">
+          <label for="composeBccInput" class="w-12 text-outline font-semibold text-xs">Bcc:</label>
+          <input id="composeBccInput" type="text" placeholder="bcc@example.com" class="flex-1 bg-transparent text-on-surface placeholder:text-outline outline-none text-sm" />
+        </div>
+
+        <!-- Subject field -->
+        <div class="flex items-center gap-2 border-b border-surface-container-high pb-2">
+          <label for="composeSubjectInput" class="w-12 text-outline font-semibold text-xs">Subject:</label>
+          <input id="composeSubjectInput" required type="text" placeholder="Email subject" class="flex-1 bg-transparent text-on-surface placeholder:text-outline outline-none text-sm font-medium" />
+        </div>
+
+        <!-- Body field -->
+        <div class="relative">
+          <textarea id="composeBodyInput" required rows="6" placeholder="Write your message here..." class="w-full bg-surface-container-low/40 rounded-lg p-3 text-on-surface placeholder:text-outline outline-none resize-none text-sm leading-relaxed focus:bg-surface-container-low transition-colors"></textarea>
+        </div>
+
+        <!-- Compose Footer Actions -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-2">
+            <button id="sendEmailSubmitBtn" type="submit" class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs shadow-md transition-all">
+              <span class="material-symbols-outlined text-[16px]">send</span>
+              <span id="sendBtnLabel">Send Email</span>
+            </button>
+          </div>
+          <button id="discardDraftBtn" type="button" class="p-2 rounded-lg hover:bg-error-container/20 text-outline hover:text-error transition-colors" title="Discard">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Application Script Entry Point -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
